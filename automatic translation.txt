@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         automatic translation
 // @namespace    https://viayoo.com/
-// @version      v1
+// @version      v1.1
 // @description  按站点设置自动翻译整个页面
 // @author       leon
 // @run-at       document-start
@@ -147,8 +147,6 @@
   let continuousTranslationTimer = null;
   let translationRetryCount = 0;
   let lastTranslationTime = 0;
-  let isRussianContent = false;
-  let russianDetectionTimer = null;
   let sitePreference = null;
   let defaultSitePreference = PREF_ON;
   let promptEveryPage = false;
@@ -372,18 +370,6 @@
 
   function getTranslationTargetLang() {
     return languageSettings.to || FALLBACK_TARGET_LANG;
-  }
-
-  function getLanguageLabel(options, value) {
-    const option = options.find(function(item) {
-      return item.value === value;
-    });
-    return option ? option.label : value;
-  }
-
-  function getLanguageDirectionLabel() {
-    return getLanguageLabel(SOURCE_LANGUAGE_OPTIONS, languageSettings.from) + ' → ' +
-      getLanguageLabel(TARGET_LANGUAGE_OPTIONS, languageSettings.to);
   }
 
   function normalizeIconOpacity(value) {
@@ -716,7 +702,6 @@
         font-size: 13px;
         margin-bottom: 10px;
       }
-      #auto-translate-settings-page select,
       #auto-translate-settings-page input {
         width: 100%;
         min-height: 36px;
@@ -814,16 +799,6 @@
         margin: 0 0 10px;
         color: #64748b;
         font-size: 12px;
-      }
-      #auto-translate-settings-page .auto-translate-save {
-        min-height: 36px;
-        border: 0;
-        border-radius: 8px;
-        background: #0f766e;
-        color: #ffffff;
-        cursor: pointer;
-        padding: 8px 14px;
-        font-weight: 700;
       }
       #auto-translate-settings-page .auto-translate-setting-grid {
         display: grid;
@@ -1659,10 +1634,6 @@
     translatorStartPromise = (async function() {
       if (!siteTranslationEnabled) return;
 
-      setTimeout(function() {
-        if (siteTranslationEnabled) smartEngineDetection();
-      }, 1000);
-
       await setupActiveTranslator();
       if (!siteTranslationEnabled || !translatorReady) return;
 
@@ -1689,30 +1660,6 @@
         setTimeout(run, AUTO_TRANSLATE_DELAY);
       }, { once: true });
     }
-  }
-
-  // ── 俄语检测 ──────────────────────────────────────────
-
-  function detectRussianByContent() {
-    if (!document.body) return false;
-    try {
-      const selectors = ['main', 'article', '.content', '#content', 'body'];
-      let text = '';
-      for (const sel of selectors) {
-        const el = document.querySelector(sel);
-        if (el && el.textContent.length > 100) { text = el.textContent; break; }
-      }
-      if (text.length < 50) return false;
-      const ratio = (text.match(/[\u0400-\u04FF]/g) || []).length / text.length;
-      return ratio >= 0.2;
-    } catch (e) { return false; }
-  }
-
-  function smartEngineDetection() {
-    if (russianDetectionTimer) clearTimeout(russianDetectionTimer);
-    russianDetectionTimer = setTimeout(() => {
-      isRussianContent = detectRussianByContent();
-    }, 1500);
   }
 
   // ── 翻译 API ──────────────────────────────────────────
@@ -2120,10 +2067,7 @@
           return (m.type === 'childList' && (m.addedNodes.length > 0 || m.removedNodes.length > 0)) ||
                  (m.type === 'characterData' && m.target.nodeType === Node.TEXT_NODE);
         });
-        if (hasChanges && siteTranslationEnabled) {
-          smartEngineDetection();
-          setTimeout(function() { translateWholePage(); }, 300);
-        }
+        if (hasChanges && siteTranslationEnabled) setTimeout(function() { translateWholePage(); }, 300);
       }, DOM_CHANGE_DELAY);
     });
     try {
