@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         熬夜做的翻译
+// @name         automatic translation
 // @namespace    https://viayoo.com/
 // @version      v1
 // @description  按站点设置自动翻译整个页面
@@ -2185,7 +2185,7 @@
     showInstallHint();
     sitePreference = readSitePreference();
     updateControlUi();
-    if (promptEveryPage) {
+    if (promptEveryPage && sitePreference === null) {
       setTimeout(function() {
         if (!settingsRoot || settingsRoot.hidden) showControlPanel();
       }, 300);
